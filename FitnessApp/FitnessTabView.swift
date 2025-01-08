@@ -23,7 +23,7 @@ struct FitnessTabView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            HomeView()
+            HomeView(viewModel: HomeViewModel())
                 .tag("Home")
                 .tabItem{
                     Image(systemName: "house")
