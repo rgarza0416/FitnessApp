@@ -8,6 +8,9 @@
 import Foundation
 
 class HomeViewModel: ObservableObject {
+    
+    let healthManager = HealthManager.shared
+    
      var calories: Int = 200
      var active: Int = 55
      var stand: Int = 8
@@ -23,4 +26,32 @@ class HomeViewModel: ObservableObject {
                         Workout(id: 1, title: "Biking", image: "figure.run", tintColor: .red, duration: "55 minutes", date: "Jan 3", calories: "600 kcal"),
                         Workout(id: 2, title: "Strength Training", image: "figure.run", tintColor: .yellow, duration: "45 minutes", date: "Jan 4", calories: "450 kcal"),
                         Workout(id: 3, title: "Tennis", image: "figure.run", tintColor: .orange, duration: "30 minutes", date: "Jan 5", calories: "300 kcal")]
+    
+    
+    init() {
+        Task {
+            do {
+                try await healthManager.requestHealthKitAccess()
+                healthManager.fetchTodayStandHours { result in
+                    switch result {
+                    case .success(let success):
+                        print(success)
+                    case .failure(let failure):
+                        print(failure.localizedDescription)
+                    }
+                }
+                
+                healthManager.fetchTodayStandHours { result in
+                    switch result {
+                    case .success(let success):
+                        print(success)
+                    case .failure(let failure):
+                        print(failure.localizedDescription)
+                    }
+                }
+            } catch {
+                print(error.localizedDescription)
+            }
+        }
+    }
 }
