@@ -15,11 +15,13 @@ class HomeViewModel: ObservableObject {
      @Published var exercise: Int = 0
      @Published var stand: Int = 0
     
+    @Published var activities = [Activity]()
     
-    var mockActivities = [Activity(id: 0, title: "Todays Steps", subtitle: "Goal 12,000", image: "figure.walk", tintColor: .green, amount: "9812"),
-                          Activity(id: 1, title: "Todays Steps", subtitle: "Goal 12,000", image: "figure.walk", tintColor: .red, amount: "7881"),
-                          Activity(id: 2, title: "Todays Steps", subtitle: "Goal 12,000", image: "figure.walk", tintColor: .blue, amount: "4005"),
-                          Activity(id: 3, title: "Todays Steps", subtitle: "Goal 12,000", image: "figure.walk", tintColor: .purple, amount: "10,031")
+    
+    var mockActivities = [Activity(title: "Todays Steps", subtitle: "Goal 12,000", image: "figure.walk", tintColor: .green, amount: "9812"),
+                          Activity(title: "Todays Steps", subtitle: "Goal 12,000", image: "figure.walk", tintColor: .red, amount: "7881"),
+                          Activity(title: "Todays Steps", subtitle: "Goal 12,000", image: "figure.walk", tintColor: .blue, amount: "4005"),
+                          Activity(title: "Todays Steps", subtitle: "Goal 12,000", image: "figure.walk", tintColor: .purple, amount: "10,031")
     ]
     
     var mockWorkouts = [Workout(id: 0, title: "Running", image: "figure.run", tintColor: .cyan, duration: "45 minutes", date: "Jan 2", calories: "450 kcal"),
@@ -35,6 +37,8 @@ class HomeViewModel: ObservableObject {
                 fetchTodayCalories()
                 fetchTodayExerciseTime()
                 fetchTodayStandHours()
+                fetchTodaysSteps()
+                fetchCurrentWeekActivities()
             } catch {
                 print(error.localizedDescription)
             }
@@ -47,6 +51,8 @@ class HomeViewModel: ObservableObject {
                 case .success(let calories):
                 DispatchQueue.main.async {
                     self.calories = Int(calories)
+                    let activity = Activity(title: "Calories Burned", subtitle: "Today", image: "flame", tintColor: .red, amount: calories.formattedNumberString())
+                    self.activities.append(activity)
                 }
             case .failure(let failure):
                 print(failure.localizedDescription)
@@ -73,6 +79,33 @@ class HomeViewModel: ObservableObject {
             case .success(let hours):
                 DispatchQueue.main.async {
                     self.stand = hours
+                }
+            case .failure(let failure):
+                print(failure.localizedDescription)
+            }
+        }
+    }
+    
+    // MARK: Fitness Activity
+    func fetchTodaysSteps() {
+        healthManager.fetchTodayStep { result in
+            switch result {
+            case .success(let activity):
+                DispatchQueue.main.async {
+                    self.activities.append(activity)
+                }
+            case .failure(let failure):
+                print(failure.localizedDescription)
+            }
+        }
+    }
+    
+    func fetchCurrentWeekActivities() {
+        healthManager.fetchCurrentWeekWorkoutStats { result in
+            switch result {
+            case .success(let activities):
+                DispatchQueue.main.async {
+                    self.activities.append(contentsOf: activities)
                 }
             case .failure(let failure):
                 print(failure.localizedDescription)

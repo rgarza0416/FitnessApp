@@ -14,6 +14,23 @@ extension Date {
         let calendar = Calendar.current
         return calendar.startOfDay(for: Date())
     }
+    
+    static var startOfWeek: Date {
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())
+        components.weekday = 1
+        return calendar.date(from: components) ?? Date()
+    }
+}
+
+extension Double {
+    
+    func formattedNumberString() -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 0
+        return formatter.string(from: NSNumber(value: self)) ?? "0"
+    }
 }
 
 //Singleton, only initialized once in your project
@@ -39,8 +56,10 @@ class HealthManager {
         let calories = HKQuantityType(.activeEnergyBurned)
         let exercise = HKQuantityType(.appleExerciseTime)
         let stand = HKCategoryType(.appleStandHour)
+        let steps = HKQuantityType(.stepCount)
+        let workouts = HKSampleType.workoutType()
         
-        let healthTypes: Set = [calories, exercise, stand]
+        let healthTypes: Set = [calories, exercise, stand, steps, workouts]
         try await healthStore.requestAuthorization(toShare: [], read: healthTypes)
     }
     
@@ -50,7 +69,7 @@ class HealthManager {
         let predicate = HKQuery.predicateForSamples(withStart: .startOfToday, end: Date())
         let query = HKStatisticsQuery(quantityType: calories, quantitySamplePredicate: predicate) { _, result, error in
             guard let quantity = result?.sumQuantity(), error == nil else {
-                completion(.failure(NSError()))
+                completion(.failure(URLError(.badURL)))
                 return
             }
             
@@ -66,11 +85,9 @@ class HealthManager {
         let predicate = HKQuery.predicateForSamples(withStart: .startOfToday, end: Date())
         let query = HKStatisticsQuery(quantityType: exercise, quantitySamplePredicate: predicate) { _, result, error in
             guard let quantity = result?.sumQuantity(), error == nil else {
-                completion(.failure(NSError()))
+                completion(.failure(URLError(.badURL)))
                 return
             }
-            
-            
             let exerciseTime = quantity.doubleValue(for: .minute())
             completion(.success(exerciseTime))
         }
@@ -82,7 +99,9 @@ class HealthManager {
         let predicate = HKQuery.predicateForSamples(withStart: .startOfToday, end: Date())
         let query = HKSampleQuery(sampleType: stand, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, result, error in
             guard let samples = result as? [HKCategorySample], error == nil else {
-                completion(.failure(NSError()))
+                completion(.failure(URLError(.badURL)
+                  //  NSError()
+                ))
                 return
             }
             let standCount = samples.filter({$0.value == 0}).count
@@ -90,4 +109,74 @@ class HealthManager {
         }
         healthStore.execute(query)
     }
-}
+    
+    // MARK: Fitness Activity
+    func fetchTodayStep(completion: @escaping (Result<Activity, Error>) -> Void) {
+        let steps = HKQuantityType(.stepCount)
+        let predicate = HKQuery.predicateForSamples(withStart: .startOfToday, end: Date())
+        let query = HKStatisticsQuery(quantityType: steps, quantitySamplePredicate: predicate) { _, result, error in
+            guard let quantity = result?.sumQuantity(), error == nil else {
+                completion(.failure(URLError(.badURL)))
+                return
+            }
+            let steps = quantity.doubleValue(for: .count())
+            let activity = Activity(title: "Today Steps", subtitle: "Goal: 800", image: "figure.walk", tintColor: .green, amount: steps.formattedNumberString())
+            completion(.success(activity))
+        }
+        healthStore.execute(query)
+    }
+    
+    func fetchCurrentWeekWorkoutStats(completion: @escaping (Result<[Activity], Error>) -> Void) {
+        let workouts = HKSampleType.workoutType()
+        let predicate = HKQuery.predicateForSamples(withStart: .startOfWeek, end: Date())
+        let query = HKSampleQuery(sampleType: workouts, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { [weak self] _, results, error in
+            guard let workouts = results as? [HKWorkout], let self = self, error == nil else {
+                completion(.failure(NSError()))
+                return
+            }
+            
+            var runningCount: Int = 0
+            var strengthCount: Int = 0
+            var soccerCount: Int = 0
+            var basketballCount: Int = 0
+            var stairsCount: Int = 0
+            var kickboxingCount: Int = 0
+            
+            for workout in workouts {
+                let duration = Int(workout.duration)/60
+                if workout.workoutActivityType == .running {
+                    runningCount += duration
+                } else if workout.workoutActivityType == .traditionalStrengthTraining {
+                    strengthCount += duration
+                } else if workout.workoutActivityType == .soccer {
+                    soccerCount += duration
+                } else if workout.workoutActivityType == .basketball {
+                    basketballCount += duration
+                } else if workout.workoutActivityType == .stairClimbing {
+                    stairsCount += duration
+                } else if workout.workoutActivityType == .kickboxing {
+                    kickboxingCount += duration
+                }
+            }
+            
+            completion(.success(generateActivitiesFromDurations(running: runningCount, strength: strengthCount, soccer: soccerCount, basketball: basketballCount, stairs: stairsCount, kickboxing: kickboxingCount)))
+        }
+            healthStore.execute(query)
+            
+        }
+        
+        func generateActivitiesFromDurations(running: Int, strength: Int, soccer: Int, basketball: Int, stairs: Int, kickboxing: Int) -> [Activity] {
+            return [
+                Activity(title: "Running", subtitle: "This week", image: "figure.run", tintColor: .green, amount: "\(running)"),
+                Activity(title: "Strength Training", subtitle: "This week", image: "dumbbell", tintColor: .blue, amount: "\(strength)"),
+                Activity(title: "Soccer", subtitle: "This week", image: "figure.soccer", tintColor: .indigo, amount: "\(soccer)"),
+                Activity(title: "Basketball", subtitle: "This week", image: "figure.basketball", tintColor: .green, amount: "\(basketball)"),
+                Activity(title: "Stairstepper", subtitle: "This week", image: "figure.stairs", tintColor: .green, amount: "\(stairs)"),
+                Activity(title: "Kickboxing", subtitle: "This week", image: "figure.kickboxing", tintColor: .green, amount: "\(kickboxing)")
+                
+            ]
+                
+        }
+    }
+
+
