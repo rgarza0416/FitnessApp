@@ -16,6 +16,10 @@ class HomeViewModel: ObservableObject {
      @Published var stand: Int = 0
     
     @Published var activities = [Activity]()
+    @Published var workouts = [Workout(id: 0, title: "Running", image: "figure.run", tintColor: .cyan, duration: "45 minutes", date: "Jan 2", calories: "450 kcal"),
+                               Workout(id: 1, title: "Biking", image: "figure.run", tintColor: .red, duration: "55 minutes", date: "Jan 3", calories: "600 kcal"),
+                               Workout(id: 2, title: "Strength Training", image: "figure.run", tintColor: .yellow, duration: "45 minutes", date: "Jan 4", calories: "450 kcal"),
+                               Workout(id: 3, title: "Tennis", image: "figure.run", tintColor: .orange, duration: "30 minutes", date: "Jan 5", calories: "300 kcal")]
     
     
     var mockActivities = [Activity(title: "Todays Steps", subtitle: "Goal 12,000", image: "figure.walk", tintColor: .green, amount: "9812"),
@@ -39,6 +43,7 @@ class HomeViewModel: ObservableObject {
                 fetchTodayStandHours()
                 fetchTodaysSteps()
                 fetchCurrentWeekActivities()
+                fetchRecentWorkouts()
             } catch {
                 print(error.localizedDescription)
             }
@@ -111,5 +116,21 @@ class HomeViewModel: ObservableObject {
                 print(failure.localizedDescription)
             }
         }
+    }
+    
+    // MARK: Recent Workouts
+    func fetchRecentWorkouts() {
+        healthManager.fetchWorkoutsForMonth(month: Date()) { result in
+            switch result {
+            case .success(let workouts):
+                DispatchQueue.main.async {
+                    self.workouts = Array(workouts.prefix(4))
+                }
+            case .failure(let failure):
+                print(failure.localizedDescription)
+            }
+        }
+        
+        
     }
 }
