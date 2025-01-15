@@ -133,4 +133,5 @@ struct ChartsView: View {
 
 #Preview {
     ChartsView()
+    
 }
