@@ -8,60 +8,6 @@
 import SwiftUI
 import Charts
 
-struct DailyStepModel: Identifiable {
-    let id = UUID()
-    let date: Date
-    let count: Double
-}
-
-enum ChartOptions: String, CaseIterable {
-    case oneWeek = "1W"
-    case oneMonth = "1M"
-    case threeMonth = "3M"
-    case yearToDate = "YTD"
-    case oneYear = "1Y"
-}
-
-
-class ChartViewModel: ObservableObject {
-    
-    var mockChartData = [
-        DailyStepModel(date: Date(), count: 12345),
-        DailyStepModel(date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(), count: 9876),
-        DailyStepModel(date: Calendar.current.date(byAdding: .day, value: -2, to: Date()) ?? Date(), count: 9239),
-        DailyStepModel(date: Calendar.current.date(byAdding: .day, value: -3, to: Date()) ?? Date(), count: 3876),
-        DailyStepModel(date: Calendar.current.date(byAdding: .day, value: -4, to: Date()) ?? Date(), count: 5459),
-        DailyStepModel(date: Calendar.current.date(byAdding: .day, value: -5, to: Date()) ?? Date(), count: 4398),
-        DailyStepModel(date: Calendar.current.date(byAdding: .day, value: -6, to: Date()) ?? Date(), count: 8940)
-    ]
-    
-    @Published var mockOneMonthData = [DailyStepModel]()
-    @Published var mockThreeMonthData = [DailyStepModel]()
-   
-    
-    init() {
-        
-        var mockOneMonth = mockDataForDays(days: 30)
-        var mockThereMonths = mockDataForDays(days: 90)
-        DispatchQueue.main.async {
-            self.mockOneMonthData = mockOneMonth
-            self.mockThreeMonthData = mockThereMonths
-            
-        }
-    }
-    
-    func mockDataForDays(days: Int) -> [DailyStepModel] {
-        var mockData = [DailyStepModel]()
-        for day in 0..<days {
-            let currentDate = Calendar.current.date(byAdding: .day, value: -day, to: Date()) ?? Date()
-            let randomStepCount = Int.random(in: 5000...15000)
-            let dailyStepData = DailyStepModel(date: currentDate, count: Double(randomStepCount))
-            mockData.append(dailyStepData)
-            
-        }
-        return mockData
-    }
-}
 
 struct ChartsView: View {
     @StateObject var viewModel = ChartViewModel()
@@ -78,39 +24,59 @@ struct ChartsView: View {
             ZStack {
                 switch selectedChart {
                 case .oneWeek:
-                    Chart {
-                        ForEach(viewModel.mockChartData) { data in
-                            BarMark(x: .value(data.date.formatted(), data.date, unit: .day),
-                                    y: .value("Steps", data.count))
+                    VStack {
+                        ChartDataView(average: viewModel.oneWeekAverage, total: viewModel.oneWeekTotal)
+                        Chart {
+                            ForEach(viewModel.mockWeekChartData) { data in
+                                BarMark(x: .value(data.date.formatted(), data.date, unit: .day),
+                                        y: .value("Steps", data.count))
+                            }
                         }
                     }
                 case .oneMonth:
-                    Chart {
-                        ForEach(viewModel.mockOneMonthData) { data in
-                            BarMark(x: .value(data.date.formatted(), data.date, unit: .day),
-                                    y: .value("Steps", data.count))
+                    VStack {
+                        ChartDataView(average: viewModel.oneMonthAverage, total: viewModel.oneMonthTotal)
+                        Chart {
+                            ForEach(viewModel.mockOneMonthData) { data in
+                                BarMark(x: .value(data.date.formatted(), data.date, unit: .day),
+                                        y: .value("Steps", data.count))
+                            }
                         }
                     }
                 case .threeMonth:
-                    Chart {
-                        ForEach(viewModel.mockThreeMonthData) { data in
-                            BarMark(x: .value(data.date.formatted(), data.date, unit: .day),
-                                    y: .value("Steps", data.count))
+                    VStack {
+                        ChartDataView(average: viewModel.threeMonthAverage, total: viewModel.threeMonthTotal)
+                        Chart {
+                            ForEach(viewModel.mockThreeMonthData) { data in
+                                LineMark(x: .value(data.date.formatted(), data.date, unit: .day),
+                                         y: .value("Steps", data.count))
+                            }
                         }
                     }
                 case .yearToDate:
-                    EmptyView()
+                    VStack {
+                        ChartDataView(average: viewModel.ytdAverage, total: viewModel.ytdTotal)
+                        Chart {
+                            ForEach(viewModel.mockYTDChartData) { data in
+                                BarMark(x: .value(data.date.formatted(), data.date, unit: .month),
+                                        y: .value("Steps", data.count))
+                            }
+                        }
+                    }
                 case .oneYear:
-                    Chart {
-                        ForEach(viewModel.mockChartData) { data in
-                            BarMark(x: .value(data.date.formatted(), data.date, unit: .day),
-                                    y: .value("Steps", data.count))
+                    VStack {
+                        ChartDataView(average: viewModel.oneYearAverage, total: viewModel.oneYearTotal)
+                        Chart {
+                            ForEach(viewModel.mockYTDChartData) { data in
+                                BarMark(x: .value(data.date.formatted(), data.date, unit: .month),
+                                        y: .value("Steps", data.count))
+                            }
                         }
                     }
                 }
             }
             .foregroundStyle(.green)
-            .frame(maxHeight: 350)
+            .frame(maxHeight: 450)
             .padding(.horizontal)
             
             HStack {
