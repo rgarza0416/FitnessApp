@@ -9,6 +9,6 @@ import Foundation
 
 struct MonthlyStepModel: Identifiable {
     let id = UUID()
-    let month: String
+    let date: Date
     let count: Int
 }
