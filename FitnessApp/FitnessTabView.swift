@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import RevenueCat
 
 struct FitnessTabView: View {
     @State var selectedTab = "Home"
+    @State var isPremium = false
     
     //We are able to change the tab colors, simply by adding this init
     //
@@ -23,7 +25,7 @@ struct FitnessTabView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            HomeView(viewModel: HomeViewModel())
+            HomeView(isPremium: $isPremium)
                 .tag("Home")
                 .tabItem{
                     Image(systemName: "house")
@@ -36,7 +38,11 @@ struct FitnessTabView: View {
                     Image(systemName: "chart.line.uptrend.xyaxis")
                     Text("Charts")
                 }
-            
+        }
+        .onAppear {
+            Purchases.shared.getCustomerInfo { customerInfo, error in
+                isPremium = customerInfo?.entitlements["premium"]?.isActive == true
+            }
         }
     }
 }
